@@ -1,3 +1,7 @@
 # SSL
+certs/
 key.pem
 crt.pem
+
+# Data
+data.db
