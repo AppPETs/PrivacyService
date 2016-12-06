@@ -1,6 +1,8 @@
-# PrivayService
+# PrivacyService
 
-This project is used to demonstrate 
+This project is used to demonstrate privacy-respecting services that can be under the control of an adversary.
+
+This project is for demonstration purposes only and not tuned for performance.
 
 ## Prerequesites
 
