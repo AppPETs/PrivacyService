@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+
+import argparse
+import http.server
+import os
+import re
+import sqlite3
+import ssl
+import sys
+import unittest
+
+KEY_LENGTH_IN_BYTES = int(512 / 8)
+
+STORAGE_V1_RX = re.compile(r'^/storage/v1/([\da-fA-F]{%d})$' % int(KEY_LENGTH_IN_BYTES * 2))
+STORAGE_V1_RX_KEY_IDX = 1
+
+class HttpHeader:
+	ContentLength = 'Content-Length'
+	ContentType = 'Content-Type'
+
+class HttpStatus:
+	Ok = 200
+	BadRequest = 400
+	NotFound = 404
+
+def HttpStatusString(code: int) -> str:
+	return {
+		200: 'Ok',
+		400: 'Bad Request',
+		404: 'Not Found',
+	}.get(code, None)
+
+class MimeType:
+	class Application:
+		OctetStream = 'application/octet-stream'
+
+
+def fatal(message: str, exitCode: int = 1):
+	print(message, file = sys.stderr)
+	exit(exitCode)
+
+def open_db():
+	db = sqlite3.connect('data.db')
+	cursor = db.cursor()
+	cursor.execute('''
+		CREATE TABLE IF NOT EXISTS Storage (
+			Key VARCHAR(128) PRIMARY KEY,
+			Value BLOB
+		) WITHOUT ROWID;
+	''')
+	db.commit()
+	return db
+
+class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
+
+	def do_GET(self):
+		m = STORAGE_V1_RX.match(self.path)
+		if m:
+			key = str(m.group(STORAGE_V1_RX_KEY_IDX))
+			db = open_db()
+			cursor = db.cursor()
+			cursor.execute('''
+				SELECT value FROM storage WHERE key = ?;
+			''', (key,))
+			row = cursor.fetchone()
+			db.close()
+			if row:
+				value = row[0]
+				self.send_response(HttpStatus.Ok)
+				self.send_header(HttpHeader.ContentType, MimeType.Application.OctetStream)
+				self.end_headers()
+				self.wfile.write(value)
+			else:
+				self.send_error(
+					HttpStatus.NotFound,
+					message = HttpStatusString(HttpStatus.NotFound),
+					explain = 'The requested entry does not exist.'
+				)
+		else:
+			self.send_error(
+				HttpStatus.NotFound,
+				message = HttpStatusString(HttpStatus.NotFound),
+				explain = 'The URL is not a valid service endpoint.'
+			)
+
+	def do_POST(self):
+		m = STORAGE_V1_RX.match(self.path)
+		if m:
+			key = m.group(STORAGE_V1_RX_KEY_IDX)
+			try:
+				contentLength = int(self.headers[HttpHeader.ContentLength])
+			except ValueError:
+				self.send_error(
+					HttpStatus.BadRequest,
+					message = HttpStatusString(HttpStatus.BadRequest),
+					explain = '"%s" is not a valid value for the HTTP "%s" header.' % (
+						self.headers[HttpHeader.ContentLength],
+						HttpHeader.ContentLength
+					)
+				)
+				return
+			value = self.rfile.read(contentLength)
+			db = open_db()
+			cursor = db.cursor()
+			cursor.execute('''
+				INSERT OR REPLACE INTO storage (key, value) VALUES (?, ?);
+			''', (key, value))
+			db.commit()
+			db.close()
+			self.send_response(HttpStatus.Ok)
+			self.end_headers()
+		else:
+			self.send_error(
+				HttpStatus.NotFound,
+				message = HttpStatusString(HttpStatus.NotFound),
+				explain = 'The URL is not a valid service endpoint.'
+			)
+
+def main():
+	binpath = os.path.split(sys.argv[0])[0]
+	keyfile = os.path.join(binpath, 'key.pem')
+	crtfile = os.path.join(binpath, 'crt.pem')
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument(
+		'-t', '--test',
+		help = 'Run unit tests. Additional arguments are available. If this option is set, it has to be the first.',
+		action = 'store_true',
+		default = False,
+	)
+	parser.add_argument(
+		'-p', '--port',
+		help = 'The port the server should listen on.',
+		type = int,
+		default = 8080,
+	)
+	parser.add_argument(
+		'-a', '--address',
+		help = 'The address the server should listen on.',
+		type = str,
+		default = '',
+	)
+	parser.add_argument(
+		'-k', '--keyfile',
+		help = 'The file containing the private key for SSL connections in PEM format.',
+		type = str,
+		default = keyfile,
+	)
+	parser.add_argument(
+		'-c', '--certfile',
+		help = 'The file containing the certificate for SSL connections in PEM format.',
+		type = str,
+		default = crtfile,
+	)
+	args = parser.parse_args()
+
+	if args.test:
+		parser.print_help()
+		exit(1)
+
+	keyfile = args.keyfile
+	crtfile = args.certfile
+
+	serverAddress = (args.address, args.port)
+
+	if not os.path.isfile(keyfile):
+		fatal('Missing file: %s' % keyfile)
+	if not os.path.isfile(crtfile):
+		fatal('Missing file: %s' % crtfile)
+
+	try:
+		httpd = http.server.HTTPServer(serverAddress, PServiceRequestHandler)
+	except PermissionError:
+		fatal('Permission denied. Maybe you need root access to open port %d?' % serverAddress[1])
+	httpd.socket = ssl.wrap_socket(
+		httpd.socket,
+		keyfile = keyfile,
+		certfile = crtfile,
+		server_side = True,
+	)
+	print('Listening on port %d... press ^C to quit.' % serverAddress[1])
+	try:
+		httpd.serve_forever()
+	except KeyboardInterrupt:
+		httpd.shutdown()
+	print('Done.')
+
+class TestRegularExpressions(unittest.TestCase):
+
+	def test_storage_v1_rx(self):
+		# Positive test
+		m = STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752')
+		self.assertIsNotNone(m)
+		self.assertEqual(
+			m.group(STORAGE_V1_RX_KEY_IDX),
+			'ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752'
+		)
+
+		# Negative tests
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a75'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752a'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a75x'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v2/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storaage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752'))
+
+if __name__ == '__main__':
+	if len(sys.argv) > 1 and sys.argv[1] in ['-t', '--test']:
+		del sys.argv[1]
+		unittest.main()
+	else:
+		main()
