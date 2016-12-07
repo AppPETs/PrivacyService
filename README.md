@@ -43,7 +43,11 @@ Get the `services.apppets.org.crt` file onto the device or simulator and open it
 
 ## API
 
-Assuming the hostname is `services.apppets.org`.
+Assuming the hostname is `services.apppets.org`. Manual testing can be done with the following command:
+
+```sh
+openssl s_client -connect services.apppets.org:<port>
+```
 
 ### Key-value Storage
 
