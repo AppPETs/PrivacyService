@@ -81,7 +81,7 @@ Date: Tue, 06 Dec 2016 13:02:27 GMT
 ##### Request
 
 ```http
-GET /storage/<recordId> HTTP/1.1
+GET /storage/<key> HTTP/1.1
 Host: services.apppets.org
 ```
 
