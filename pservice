@@ -9,10 +9,30 @@ import ssl
 import sys
 import unittest
 
+from base64 import b64decode
+from binascii import hexlify
+
 KEY_LENGTH_IN_BYTES = int(512 / 8)
 
 STORAGE_V1_RX = re.compile(r'^/storage/v1/([\da-fA-F]{%d})$' % int(KEY_LENGTH_IN_BYTES * 2))
 STORAGE_V1_RX_KEY_IDX = 1
+
+class TestVectors:
+	class Storage:
+		# Values only known to the P-Lib
+		KeyPlaintext   = b64decode(b'TXkgUElO') # "My PIN"
+		ValuePlaintext = b64decode(b'MTIzNA==') # "1234"
+		SecretKey      = b64decode(b'SfB36Uo9HfuEh6OMqQtON3WzSyy/1/N+IZe7zZOOuiw=')
+		Salt           = b64decode(b'cgXaDyJugEIZ/cprjZLKxg==')
+
+		# Values known to the P-Service (and P-Lib)
+		Nonce      = b64decode(b'IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79I')
+		Mac        = b64decode(b'kI7zi/vGkh25lFRU2Of+/w==')
+		Ciphertext = b64decode(b'aYpHnw==') # E("1234", SecretKey, Nonce)
+
+		# Values actully stored in the P-Lib
+		Key   = b64decode(b'CXYOV7m1jr9jZr2FWXJkmphUXkzrL6cRoRgXv4YTednD8ezyEX2YCAO9pP6/QxtBRlGH+LCUBO3mnwz0DEiK3w==') # H("My PIN", Salt)
+		Value = b64decode(b'IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58=') # Nonce + Mac + Ciphertext
 
 class HttpHeader:
 	ContentLength = 'Content-Length'
@@ -169,6 +189,12 @@ def main():
 		fatal('Missing file: %s' % keyfile)
 	if not os.path.isfile(crtfile):
 		fatal('Missing file: %s' % crtfile)
+
+	# Insert test vectors
+	insert_or_replace_key_value(
+		key   = str(hexlify(TestVectors.Storage.Key), encoding = 'ascii'),
+		value = TestVectors.Storage.Value
+	)
 
 	try:
 		httpd = http.server.HTTPServer(serverAddress, PServiceRequestHandler)
