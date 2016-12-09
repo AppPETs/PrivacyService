@@ -34,7 +34,6 @@ class MimeType:
 	class Application:
 		OctetStream = 'application/octet-stream'
 
-
 def fatal(message: str, exitCode: int = 1):
 	print(message, file = sys.stderr)
 	exit(exitCode)
