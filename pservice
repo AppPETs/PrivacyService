@@ -50,6 +50,15 @@ def open_db():
 	db.commit()
 	return db
 
+def insert_or_replace_key_value(key: bin, value: bin):
+	db = open_db()
+	cursor = db.cursor()
+	cursor.execute('''
+		INSERT OR REPLACE INTO Storage (Key, Value) VALUES (?, ?);
+	''', (key, value))
+	db.commit()
+	db.close()
+
 class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 
 	def do_GET(self):
@@ -59,7 +68,7 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 			db = open_db()
 			cursor = db.cursor()
 			cursor.execute('''
-				SELECT value FROM storage WHERE key = ?;
+				SELECT Value FROM Storage WHERE Key = ?;
 			''', (key,))
 			row = cursor.fetchone()
 			db.close()
@@ -99,13 +108,7 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 				)
 				return
 			value = self.rfile.read(contentLength)
-			db = open_db()
-			cursor = db.cursor()
-			cursor.execute('''
-				INSERT OR REPLACE INTO storage (key, value) VALUES (?, ?);
-			''', (key, value))
-			db.commit()
-			db.close()
+			insert_or_replace_key_value(key, value)
 			self.send_response(HttpStatus.Ok)
 			self.end_headers()
 		else:
