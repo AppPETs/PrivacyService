@@ -6,7 +6,7 @@ This project is for demonstration purposes only and not tuned for performance.
 
 ## Prerequesites
 
-- Python 3.5
+- Python 3.6
 
 ### Generating a Self-signed Certificate
 

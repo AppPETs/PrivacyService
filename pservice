@@ -200,10 +200,19 @@ def main():
 		httpd = http.server.HTTPServer(serverAddress, PServiceRequestHandler)
 	except PermissionError:
 		fatal('Permission denied. Maybe you need root access to open port %d?' % serverAddress[1])
-	httpd.socket = ssl.wrap_socket(
-		httpd.socket,
-		keyfile = keyfile,
+
+	context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+	context.options |= ssl.OP_NO_SSLv2
+	context.options |= ssl.OP_NO_SSLv3
+	context.options |= ssl.OP_NO_TLSv1
+	context.options |= ssl.OP_NO_TLSv1_1
+	context.load_cert_chain(
 		certfile = crtfile,
+		keyfile  = keyfile,
+	)
+
+	httpd.socket = context.wrap_socket(
+		httpd.socket,
 		server_side = True,
 	)
 	print('Listening on port %d... press ^C to quit.' % serverAddress[1])
