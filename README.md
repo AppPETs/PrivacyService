@@ -70,7 +70,7 @@ To upload data use `POST` and attach the asset in binary format to the HTTP body
 ##### Request
 
 ```http
-POST /storage/<key> HTTP/1.1
+POST /storage/v1/<key> HTTP/1.1
 Host: services.app-pets.org
 Content-Type: application/octet-stream
 Content-Length: <content.length>
@@ -91,7 +91,7 @@ Date: Tue, 06 Dec 2016 13:02:27 GMT
 ##### Request
 
 ```http
-GET /storage/<key> HTTP/1.1
+GET /storage/v1/<key> HTTP/1.1
 Host: services.app-pets.org
 ```
 
