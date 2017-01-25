@@ -63,10 +63,10 @@ def open_db():
 	cursor = db.cursor()
 	cursor.execute('''
 		CREATE TABLE IF NOT EXISTS Storage (
-			Key VARCHAR(128) PRIMARY KEY,
+			Key VARCHAR(%d) PRIMARY KEY,
 			Value BLOB
 		) WITHOUT ROWID;
-	''')
+	''' % int(KEY_LENGTH_IN_BYTES * 2))
 	db.commit()
 	return db
 
