@@ -51,7 +51,7 @@ openssl s_client -connect services.app-pets.org:<port>
 
 ### Key-value Storage
 
-The Key-value storage can be used to store and retrieve values for given keys. The keys are 512 bit hexadecimal encoded strings consisting of 128 characters. The value is handled as binary.
+The Key-value storage can be used to store and retrieve values for given keys. The keys are 256 bit hexadecimal encoded strings consisting of 64 characters. The value is handled as binary.
 
  There is no user authentication or data protection, so anyone knowing a key can do retrieve or overwrite its value. Overwriting is done, by uploading data for an existing key. The previous value stored for that key is then lost.
 
@@ -82,8 +82,8 @@ Content-Length: <content.length>
 
 ```http
 HTTP/1.0 200 OK
-Server: BaseHTTP/0.6 Python/3.5.2
-Date: Tue, 06 Dec 2016 13:02:27 GMT
+Server: BaseHTTP/0.6 Python/3.6.0
+Date: Wed, 25 Jan 2017 13:00:00 GMT
 ```
 
 #### Download

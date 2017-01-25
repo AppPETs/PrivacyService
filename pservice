@@ -12,7 +12,7 @@ import unittest
 from base64 import b64decode
 from binascii import hexlify
 
-KEY_LENGTH_IN_BYTES = int(512 / 8)
+KEY_LENGTH_IN_BYTES = int(256 / 8)
 
 STORAGE_V1_RX = re.compile(r'^/storage/v1/([\da-fA-F]{%d})$' % int(KEY_LENGTH_IN_BYTES * 2))
 STORAGE_V1_RX_KEY_IDX = 1
@@ -23,7 +23,7 @@ class TestVectors:
 		KeyPlaintext   = b64decode(b'TXkgUElO') # "My PIN"
 		ValuePlaintext = b64decode(b'MTIzNA==') # "1234"
 		SecretKey      = b64decode(b'SfB36Uo9HfuEh6OMqQtON3WzSyy/1/N+IZe7zZOOuiw=')
-		Salt           = b64decode(b'cgXaDyJugEIZ/cprjZLKxg==')
+		HashKey        = b64decode(b'y7QsdX+kOcDlup9KpVREZepSDUiqsaY/6Zb3ovmLvuQ=')
 
 		# Values known to the P-Service (and P-Lib)
 		Nonce      = b64decode(b'IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79I')
@@ -31,7 +31,7 @@ class TestVectors:
 		Ciphertext = b64decode(b'aYpHnw==') # E("1234", SecretKey, Nonce)
 
 		# Values actually stored by the P-Service
-		Key   = b64decode(b'CXYOV7m1jr9jZr2FWXJkmphUXkzrL6cRoRgXv4YTednD8ezyEX2YCAO9pP6/QxtBRlGH+LCUBO3mnwz0DEiK3w==') # H("My PIN", Salt)
+		Key   = b64decode(b'/LZHGWGCnSgnBGKi1cun/RQdgMYI1t8HT44uITwYdHE=') # H("My PIN", Salt)
 		Value = b64decode(b'IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58=') # Nonce + Mac + Ciphertext
 
 class HttpHeader:
@@ -226,19 +226,20 @@ class TestRegularExpressions(unittest.TestCase):
 
 	def test_storage_v1_rx(self):
 		# Positive test
-		m = STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752')
+		m = STORAGE_V1_RX.match('/storage/v1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+		m = STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76')
 		self.assertIsNotNone(m)
 		self.assertEqual(
 			m.group(STORAGE_V1_RX_KEY_IDX),
-			'ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752'
+			'ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76'
 		)
 
 		# Negative tests
-		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a75'))
-		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752a'))
-		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a75x'))
-		self.assertIsNone(STORAGE_V1_RX.match('/storage/v2/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752'))
-		self.assertIsNone(STORAGE_V1_RX.match('/storaage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76e8ebdf97866d4b4c8afe0840ae36f39300d914c89045193dfa124bfd8bc8a752'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b9'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b9x'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storage/v2/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93'))
+		self.assertIsNone(STORAGE_V1_RX.match('/storaage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93'))
 
 if __name__ == '__main__':
 	if len(sys.argv) > 1 and sys.argv[1] in ['-t', '--test']:
