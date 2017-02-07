@@ -226,7 +226,6 @@ class TestRegularExpressions(unittest.TestCase):
 
 	def test_storage_v1_rx(self):
 		# Positive test
-		m = STORAGE_V1_RX.match('/storage/v1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
 		m = STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76')
 		self.assertIsNotNone(m)
 		self.assertEqual(
