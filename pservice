@@ -11,6 +11,7 @@ import unittest
 
 from base64 import b64decode
 from binascii import hexlify
+from http import HTTPStatus
 
 KEY_LENGTH_IN_BYTES = int(256 / 8)
 
@@ -38,18 +39,6 @@ class HttpHeader:
 	Host = 'Host'
 	ContentLength = 'Content-Length'
 	ContentType = 'Content-Type'
-
-class HttpStatus:
-	Ok = 200
-	BadRequest = 400
-	NotFound = 404
-
-def HttpStatusString(code: int) -> str:
-	return {
-		200: 'Ok',
-		400: 'Bad Request',
-		404: 'Not Found',
-	}.get(code, None)
 
 class MimeType:
 	class Application:
@@ -90,8 +79,8 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 			superfluous_headers = set(self.headers) - allowed_headers
 			if superfluous_headers:
 				self.send_error(
-					HttpStatus.BadRequest,
-					message = HttpStatusString(HttpStatus.BadRequest),
+					HTTPStatus.BAD_REQUEST,
+					message = HTTPStatus.BAD_REQUEST.phrase,
 					explain = 'Superfluous headers are not allowed, they could be used for fingerprinting attacks: "%s"' %
 						'", "'.join(sorted(list(superfluous_headers))),
 				)
@@ -113,20 +102,20 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 			db.close()
 			if row:
 				value = row[0]
-				self.send_response(HttpStatus.Ok)
+				self.send_response(HTTPStatus.OK)
 				self.send_header(HttpHeader.ContentType, MimeType.Application.OctetStream)
 				self.end_headers()
 				self.wfile.write(value)
 			else:
 				self.send_error(
-					HttpStatus.NotFound,
-					message = HttpStatusString(HttpStatus.NotFound),
+					HTTPStatus.NOT_FOUND,
+					message = HTTPStatus.NOT_FOUND.phrase,
 					explain = 'The requested entry does not exist.'
 				)
 		else:
 			self.send_error(
-				HttpStatus.NotFound,
-				message = HttpStatusString(HttpStatus.NotFound),
+				HTTPStatus.NOT_FOUND,
+				message = HTTPStatus.NOT_FOUND.phrase,
 				explain = 'The URL is not a valid service endpoint.'
 			)
 
@@ -144,8 +133,8 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 				contentLength = int(self.headers[HttpHeader.ContentLength])
 			except ValueError:
 				self.send_error(
-					HttpStatus.BadRequest,
-					message = HttpStatusString(HttpStatus.BadRequest),
+					HTTPStatus.BAD_REQUEST,
+					message = HTTPStatus.BAD_REQUEST,
 					explain = '"%s" is not a valid value for the HTTP "%s" header.' % (
 						self.headers[HttpHeader.ContentLength],
 						HttpHeader.ContentLength
@@ -154,12 +143,12 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 				return
 			value = self.rfile.read(contentLength)
 			insert_or_replace_key_value(key, value)
-			self.send_response(HttpStatus.Ok)
+			self.send_response(HTTPStatus.OK)
 			self.end_headers()
 		else:
 			self.send_error(
-				HttpStatus.NotFound,
-				message = HttpStatusString(HttpStatus.NotFound),
+				HTTPStatus.NOT_FOUND,
+				message = HTTPStatus.NOT_FOUND.phrase,
 				explain = 'The URL is not a valid service endpoint.'
 			)
 
