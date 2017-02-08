@@ -68,7 +68,7 @@ To upload data use `POST` and attach the asset in binary format to the HTTP body
 An example request for getting a default test vector can be issued with the following command:
 
 ```sh
-curl 'https://privacyservice.test:8080/storage/v1/fcb6471961829d28270462a2d5cba7fd141d80c608d6df074f8e2e213c187471' --header 'User-Agent:' --header 'Accept:' --cacert 'crt.pem' --raw --silent | base64
+curl 'https://services.app-pets.org/storage/v1/fcb6471961829d28270462a2d5cba7fd141d80c608d6df074f8e2e213c187471' --header 'User-Agent:' --header 'Accept:' --cacert 'crt.pem' --raw --silent | base64
 ```
 
 This should print `IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58=` to the terminal output.
