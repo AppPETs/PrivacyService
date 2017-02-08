@@ -65,6 +65,16 @@ https://services.app-pets.org.test/storage/v1/<key>
 
 To upload data use `POST` and attach the asset in binary format to the HTTP body of the request. To download data use `GET` and the value will be attached in binary form to the HTTP body of the response.
 
+An example request for getting a default test vector can be issued with the following command:
+
+```sh
+curl 'https://privacyservice.test:8080/storage/v1/fcb6471961829d28270462a2d5cba7fd141d80c608d6df074f8e2e213c187471' --header 'User-Agent:' --header 'Accept:' --cacert 'crt.pem' --raw --silent | base64
+```
+
+This should print `IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58=` to the terminal output.
+
+Please note that in order to prevent HTTP header fingerprinting attacks, requests containing superfluous HTTP header are rejected. This behaviour can be disabled by passing `--allow-superfluous-headers` to  `pservice`.
+
 #### Upload
 
 ##### Request

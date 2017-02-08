@@ -35,6 +35,7 @@ class TestVectors:
 		Value = b64decode(b'IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58=') # Nonce + Mac + Ciphertext
 
 class HttpHeader:
+	Host = 'Host'
 	ContentLength = 'Content-Length'
 	ContentType = 'Content-Type'
 
@@ -79,11 +80,29 @@ def insert_or_replace_key_value(key: bin, value: bin):
 	db.commit()
 	db.close()
 
+class Settings:
+	AllowSuperfluousHeaders = False
+
 class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
+
+	def sanitize_request_headers(self, allowed_headers):
+		if not Settings.AllowSuperfluousHeaders:
+			superfluous_headers = set(self.headers) - allowed_headers
+			if superfluous_headers:
+				self.send_error(
+					HttpStatus.BadRequest,
+					message = HttpStatusString(HttpStatus.BadRequest),
+					explain = 'Superfluous headers are not allowed, they could be used for fingerprinting attacks: "%s"' %
+						'", "'.join(sorted(list(superfluous_headers))),
+				)
+				return False
+		return True
 
 	def do_GET(self):
 		m = STORAGE_V1_RX.match(self.path)
 		if m:
+			if not self.sanitize_request_headers({HttpHeader.Host}):
+				return
 			key = str(m.group(STORAGE_V1_RX_KEY_IDX))
 			db = open_db()
 			cursor = db.cursor()
@@ -114,6 +133,12 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 	def do_POST(self):
 		m = STORAGE_V1_RX.match(self.path)
 		if m:
+			if not self.sanitize_request_headers({
+				HttpHeader.Host,
+				HttpHeader.ContentType,
+				HttpHeader.ContentLength,
+			}):
+				return
 			key = m.group(STORAGE_V1_RX_KEY_IDX)
 			try:
 				contentLength = int(self.headers[HttpHeader.ContentLength])
@@ -174,6 +199,12 @@ def main():
 		type = str,
 		default = crtfile,
 	)
+	parser.add_argument(
+		'--allow-superfluous-headers',
+		help = 'When set additional HTTP headers will be ignored. A request with additional headers will be rejected else.',
+		action = 'store_true',
+		default = Settings.AllowSuperfluousHeaders,
+	)
 	args = parser.parse_args()
 
 	if args.test:
@@ -184,6 +215,8 @@ def main():
 	crtfile = args.certfile
 
 	serverAddress = (args.address, args.port)
+
+	Settings.AllowSuperfluousHeaders = args.allow_superfluous_headers
 
 	if not os.path.isfile(keyfile):
 		fatal('Missing file: %s' % keyfile)
