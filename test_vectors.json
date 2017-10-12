@@ -19,5 +19,58 @@
 				}
 			]
 		}
+	],
+	"todolist": [
+		{
+			"type": "storage",
+			"configuration": {
+				"master_key": "Lw2Qx8q5ub9T3Sw8QkwxH9bIMkdpZUFJo/+kz5FND5g=",
+				"secret_key": "JLE1JAqcivf1CI0WDQlivJUzdYw1bluuT/xpGg6N/sE=",
+				"hash_key": "+GpLnYmLBMljAt5kkByr49OEOjsnm2RsigvDrjIbD/Q=",
+				"context": "TODOLIST"
+			},
+			"entries": [
+				{
+					"key": {
+						"plaintext": "task_max",
+						"ciphertext": "T6yB9OxJNsBbl7cSAxrT38UMDE5Dp9cxQDvPUFhzDbs="
+					},
+					"value": {
+						"plaintext": "AAQ=",
+						"ciphertext": "tTBCUVu1g702Uya6evEXN46ITWcXcTt427qIZuBi9hnwJ/XC0ZANNj1w"
+					}
+				},
+				{
+					"key": {
+						"plaintext": "task_0",
+						"ciphertext": "GA+UeYxfWBZ1Dt6zVnaK+9kyjzV4qTmj/DpqVv4fuKI="
+					},
+					"value": {
+						"plaintext": "eyJkZXNjcmlwdGlvbiI6IjAiLCJpc0NvbXBsZXRlZCI6ZmFsc2V9",
+						"ciphertext": "kkIJlW1+S4uSjG7xGocoO8okMW81X9gCG0KMBK8GfXguwhd0Wj6d2MZawCO6mj8XbvwRxc5XFs8UV+inOxY4iaqRQv3TfjkPapGxS4DYZg=="
+					}
+				},
+				{
+					"key": {
+						"plaintext": "task_1",
+						"ciphertext": "/Cn8NObIi3OkLDU+t9pDympjgiBORaEHuk7ZdllUGl4="
+					},
+					"value": {
+						"plaintext": "eyJkZXNjcmlwdGlvbiI6IjEiLCJpc0NvbXBsZXRlZCI6ZmFsc2V9",
+						"ciphertext": "DgRWLX76Sg8YNKcmjjmHsUElGBpEQerXhSkQM0ng5DYDynpxmfb1kKQBGgCi5lSnRu+FJ6GGUSwgRyai/pHj9NXyoLcN9D7BiwIERyFEdw=="
+					}
+				},
+				{
+					"key": {
+						"plaintext": "task_3",
+						"ciphertext": "UQWXMlTsP2OYsBUyj/bT5fNlzh27OnhbITPBcp+7V6Y="
+					},
+					"value": {
+						"plaintext": "eyJkZXNjcmlwdGlvbiI6IjMiLCJpc0NvbXBsZXRlZCI6dHJ1ZX0=",
+						"ciphertext": "KN5y/l6VaUrZOXmLazVkTr/Fe2n/qVUG0sjz3y7TzFcAP8pmS5OArvRxdk2UkU9MpGkm6Hs1CJwzKmU2BlzspZGZIxfA2S4h86Tv0zNk"
+					}
+				}
+			]
+		}
 	]
 }
