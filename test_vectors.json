@@ -1,0 +1,23 @@
+{
+	"foodtracker": [
+		{
+			"type": "storage",
+			"configuration": {
+				"secret_key": "SfB36Uo9HfuEh6OMqQtON3WzSyy/1/N+IZe7zZOOuiw=",
+				"hash_key": "y7QsdX+kOcDlup9KpVREZepSDUiqsaY/6Zb3ovmLvuQ="
+			},
+			"entries": [
+				{
+					"key": {
+						"plaintext": "My PIN",
+						"ciphertext": "/LZHGWGCnSgnBGKi1cun/RQdgMYI1t8HT44uITwYdHE="
+					},
+					"value": {
+						"plaintext": "MTIzNA==",
+						"ciphertext": "IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58="
+					}
+				}
+			]
+		}
+	]
+}

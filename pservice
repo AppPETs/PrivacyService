@@ -2,6 +2,7 @@
 
 import argparse
 import http.server
+import json
 import os
 import re
 import sqlite3
@@ -18,23 +19,6 @@ KEY_LENGTH_IN_BYTES = int(256 / 8)
 STORAGE_V1_RX = re.compile(r'^/storage/v1/([\da-fA-F]{%d})$' % int(KEY_LENGTH_IN_BYTES * 2))
 STORAGE_V1_RX_KEY_IDX = 1
 
-class TestVectors:
-	class Storage:
-		# Values only known to the P-Lib
-		KeyPlaintext   = b64decode(b'TXkgUElO') # "My PIN"
-		ValuePlaintext = b64decode(b'MTIzNA==') # "1234"
-		SecretKey      = b64decode(b'SfB36Uo9HfuEh6OMqQtON3WzSyy/1/N+IZe7zZOOuiw=')
-		HashKey        = b64decode(b'y7QsdX+kOcDlup9KpVREZepSDUiqsaY/6Zb3ovmLvuQ=')
-
-		# Values known to the P-Service (and P-Lib)
-		Nonce      = b64decode(b'IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79I')
-		Mac        = b64decode(b'kI7zi/vGkh25lFRU2Of+/w==')
-		Ciphertext = b64decode(b'aYpHnw==') # E("1234", SecretKey, Nonce)
-
-		# Values actually stored by the P-Service
-		Key   = b64decode(b'/LZHGWGCnSgnBGKi1cun/RQdgMYI1t8HT44uITwYdHE=') # H("My PIN", Salt)
-		Value = b64decode(b'IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58=') # Nonce + Mac + Ciphertext
-
 class HttpHeader:
 	Host = 'Host'
 	ContentLength = 'Content-Length'
@@ -47,6 +31,37 @@ class MimeType:
 def fatal(message: str, exitCode: int = 1):
 	print(message, file = sys.stderr)
 	exit(exitCode)
+
+def load_test_vectors():
+	with open('test_vectors.json', 'r') as f:
+		j = json.load(f)
+
+	result = dict()
+
+	for project in j.keys():
+		print("Importing test vectors for '%s'..." % project)
+		casenum = 0
+		for case in j[project]:
+			casenum += 1
+
+			print("  Case %d:" % casenum)
+			if case['type'] == 'storage':
+
+				entries = case['entries']
+				for entry in entries:
+					bkey = b64decode(entry['key']['ciphertext'])
+					key = str(hexlify(bkey), encoding = 'ascii')
+					value = b64decode(entry['value']['ciphertext'])
+					pkey = entry['key']['plaintext']
+
+					m = STORAGE_V1_RX.match('/storage/v1/' + key)
+					if not m:
+						fatal("    Invalid key: '%s'" % key)
+
+					result[key] = value
+					print("    Added '%s' to 'storage/v1' ('%s')." % (key, pkey))
+
+	return result
 
 def open_db():
 	db = sqlite3.connect('data.db')
@@ -61,6 +76,13 @@ def open_db():
 	return db
 
 def insert_or_replace_key_value(key: bin, value: bin):
+	# Check if someone tries to overwrite a test vector
+	if Settings.EnableTestVectors and Settings.TestVectors:
+		if key in Settings.TestVectors:
+			Settings.TestVectors[key] = value
+			return
+
+	# Else actually store the value in the database	
 	db = open_db()
 	cursor = db.cursor()
 	cursor.execute('''
@@ -69,8 +91,29 @@ def insert_or_replace_key_value(key: bin, value: bin):
 	db.commit()
 	db.close()
 
+def get_value_for_key(key):
+	# Check if a test vector is requested if test vectors are enabled
+	if Settings.EnableTestVectors and Settings.TestVectors:
+		if key in Settings.TestVectors:
+			return Settings.TestVectors[key]
+
+	# If it isn't a test vector or test vectors are disabled, read from database
+	db = open_db()
+	cursor = db.cursor()
+	cursor.execute('SELECT Value FROM Storage WHERE Key = ?;', (key,))
+	row = cursor.fetchone()
+	db.close()
+	if row:
+		return row[0]
+	
+	return None
+
 class Settings:
 	AllowSuperfluousHeaders = False
+	EnableTestVectors = False
+
+	# Context
+	TestVectors = None
 
 class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 
@@ -93,15 +136,8 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 			if not self.sanitize_request_headers({HttpHeader.Host}):
 				return
 			key = str(m.group(STORAGE_V1_RX_KEY_IDX))
-			db = open_db()
-			cursor = db.cursor()
-			cursor.execute('''
-				SELECT Value FROM Storage WHERE Key = ?;
-			''', (key,))
-			row = cursor.fetchone()
-			db.close()
-			if row:
-				value = row[0]
+			value = get_value_for_key(key)
+			if value:
 				self.send_response(HTTPStatus.OK)
 				self.send_header(HttpHeader.ContentType, MimeType.Application.OctetStream)
 				self.end_headers()
@@ -194,6 +230,12 @@ def main():
 		action = 'store_true',
 		default = Settings.AllowSuperfluousHeaders,
 	)
+	parser.add_argument(
+		'--enable-test-vectors',
+		help = 'Activates test vectors.',
+		action = 'store_true',
+		default = Settings.EnableTestVectors,
+	)
 	args = parser.parse_args()
 
 	if args.test:
@@ -206,17 +248,15 @@ def main():
 	serverAddress = (args.address, args.port)
 
 	Settings.AllowSuperfluousHeaders = args.allow_superfluous_headers
+	Settings.EnableTestVectors = args.enable_test_vectors
+
+	if Settings.EnableTestVectors:
+		Settings.TestVectors = load_test_vectors()
 
 	if not os.path.isfile(keyfile):
 		fatal('Missing file: %s' % keyfile)
 	if not os.path.isfile(crtfile):
 		fatal('Missing file: %s' % crtfile)
-
-	# Insert test vectors
-	insert_or_replace_key_value(
-		key   = str(hexlify(TestVectors.Storage.Key), encoding = 'ascii'),
-		value = TestVectors.Storage.Value
-	)
 
 	try:
 		httpd = http.server.HTTPServer(serverAddress, PServiceRequestHandler)
