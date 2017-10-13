@@ -10,6 +10,8 @@ This project is for demonstration purposes only and not tuned for performance.
 
 ### Generating a Self-signed Certificate
 
+⚠️ Only use self-signed certificates during development and testing, not for production.
+
 Assuming the domain for your server, where the P-Service is hosted, is `services.app-pets.org`:
 
 ```sh
@@ -26,6 +28,8 @@ ln -s certs/services.app-pets.org crt.pem
 Changing the certificates require you to restart the P-Service.
 
 ### Trusting Self-signed Certificates
+
+⚠️ Only use self-signed certificates during development and testing, not for production.
 
 Note that you need to trust the certificate as it is self-signed and not signed by a trusted Certificate Authority (CA).
 
