@@ -53,19 +53,21 @@ class Database:
 	def __del__(self):
 		self.db.close()
 
-	def load_test_vectors(self, file_name):
+	def load_test_vectors(self, file_name, silent = False):
+		log = lambda m: None if silent else print(m)
+
 		with open(file_name, 'r') as f:
 			j = json.load(f)
 
 		result = dict()
 
 		for project in j.keys():
-			print("Importing test vectors for '%s'..." % project)
+			log("Importing test vectors for '%s'..." % project)
 			casenum = 0
 			for case in j[project]:
 				casenum += 1
 
-				print("  Case %d:" % casenum)
+				log("  Case %d:" % casenum)
 				if case['type'] == 'storage':
 
 					entries = case['entries']
@@ -80,7 +82,7 @@ class Database:
 							fatal("    Invalid key: '%s'" % key)
 
 						result[key] = value
-						print("    Added '%s' to 'storage/v1' ('%s')." % (key, pkey))
+						log("    Added '%s' to 'storage/v1' ('%s')." % (key, pkey))
 
 		self.test_vectors = result
 
@@ -352,6 +354,34 @@ class TestRegularExpressions(unittest.TestCase):
 
 		# Try retrieving non-existant value
 		self.assertIsNone(db.value_for(key))
+
+		# Test insertion
+		db.insert_or_replace(key, b'foo')
+		self.assertEqual(db.value_for(key), b'foo')
+
+		# Test overwriting
+		db.insert_or_replace(key, b'bar')
+		self.assertEqual(db.value_for(key), b'bar')
+
+		# Test deletion
+		db.remove(key)
+		self.assertIsNone(db.value_for(key))
+
+		# Cleanup
+		del db
+		os.remove(test_db_file)
+
+	def test_database_with_test_vectors(self):
+		test_db_file = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()) + ".db")
+
+		db = Database(file_name = test_db_file)
+
+		db.load_test_vectors(file_name = 'test_vectors.json', silent = True)
+
+		key = 'fcb6471961829d28270462a2d5cba7fd141d80c608d6df074f8e2e213c187471'
+
+		# Try retrieving non-existant value
+		self.assertEqual(db.value_for(key), b64decode('IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58='))
 
 		# Test insertion
 		db.insert_or_replace(key, b'foo')
