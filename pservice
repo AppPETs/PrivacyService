@@ -8,7 +8,9 @@ import re
 import sqlite3
 import ssl
 import sys
+import tempfile
 import unittest
+import uuid
 
 from base64 import b64decode
 from binascii import hexlify
@@ -63,8 +65,12 @@ def load_test_vectors():
 
 	return result
 
-def open_db():
-	db = sqlite3.connect('data.db')
+def open_db(file_name = None):
+
+	if not file_name:
+		file_name = 'data.db'
+
+	db = sqlite3.connect(file_name)
 	cursor = db.cursor()
 	cursor.execute('''
 		CREATE TABLE IF NOT EXISTS Storage (
@@ -75,15 +81,15 @@ def open_db():
 	db.commit()
 	return db
 
-def insert_or_replace_key_value(key: bin, value: bin):
+def insert_or_replace_key_value(key, value, db_file_name = None):
 	# Check if someone tries to overwrite a test vector
 	if Settings.EnableTestVectors and Settings.TestVectors:
 		if key in Settings.TestVectors:
 			Settings.TestVectors[key] = value
 			return
 
-	# Else actually store the value in the database	
-	db = open_db()
+	# Else actually store the value in the database
+	db = open_db(db_file_name)
 	cursor = db.cursor()
 	cursor.execute('''
 		INSERT OR REPLACE INTO Storage (Key, Value) VALUES (?, ?);
@@ -91,22 +97,36 @@ def insert_or_replace_key_value(key: bin, value: bin):
 	db.commit()
 	db.close()
 
-def get_value_for_key(key):
+def get_value_for_key(key, db_file_name = None):
 	# Check if a test vector is requested if test vectors are enabled
 	if Settings.EnableTestVectors and Settings.TestVectors:
 		if key in Settings.TestVectors:
 			return Settings.TestVectors[key]
 
 	# If it isn't a test vector or test vectors are disabled, read from database
-	db = open_db()
+	db = open_db(db_file_name)
 	cursor = db.cursor()
 	cursor.execute('SELECT Value FROM Storage WHERE Key = ?;', (key,))
 	row = cursor.fetchone()
 	db.close()
 	if row:
 		return row[0]
-	
+
 	return None
+
+def remove_value_for_key(key, db_file_name = None):
+	# Check if a test vector is requested
+	if Settings.EnableTestVectors and Settings.TestVectors:
+		if key in Settings.TestVectors:
+			del Settings.TestVectors['key']
+			return
+
+	# Else remove value from database
+	db = open_db(db_file_name)
+	cursor = db.cursor()
+	cursor.execute('DELETE FROM Storage WHERE Key = ?;', (key,))
+	db.commit()
+	db.close()
 
 class Settings:
 	AllowSuperfluousHeaders = False
@@ -179,6 +199,22 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 				return
 			value = self.rfile.read(contentLength)
 			insert_or_replace_key_value(key, value)
+			self.send_response(HTTPStatus.OK)
+			self.end_headers()
+		else:
+			self.send_error(
+				HTTPStatus.NOT_FOUND,
+				message = HTTPStatus.NOT_FOUND.phrase,
+				explain = 'The URL is not a valid service endpoint.'
+			)
+
+	def do_DELETE(self):
+		m = STORAGE_V1_RX.match(self.path)
+		if m:
+			if not self.sanitize_request_headers({HttpHeader.Host}):
+				return
+			key = m.group(STORAGE_V1_RX_KEY_IDX)
+			remove_value_for_key(key)
 			self.send_response(HTTPStatus.OK)
 			self.end_headers()
 		else:
@@ -301,6 +337,28 @@ class TestRegularExpressions(unittest.TestCase):
 		self.assertIsNone(STORAGE_V1_RX.match('/storage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b9x'))
 		self.assertIsNone(STORAGE_V1_RX.match('/storage/v2/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93'))
 		self.assertIsNone(STORAGE_V1_RX.match('/storaage/v1/ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93'))
+
+	def test_storage_v1_db(self):
+		test_db_file = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()) + ".db")
+
+		key = 'ed5d0909f2c385b92166ae74aa6945cdd4d01c3b746ff7c90b93c5725078fc76'
+
+		# Try retrieving non-existant value
+		self.assertIsNone(get_value_for_key(key, test_db_file))
+
+		# Test insertion
+		insert_or_replace_key_value(key, b'foo', test_db_file)
+		self.assertEqual(get_value_for_key(key, test_db_file), b'foo')
+
+		# Test overwriting
+		insert_or_replace_key_value(key, b'bar', test_db_file)
+		self.assertEqual(get_value_for_key(key, test_db_file), b'bar')
+
+		# Test deletion
+		remove_value_for_key(key, test_db_file)
+		self.assertIsNone(get_value_for_key(key, test_db_file))
+
+		os.remove(test_db_file)
 
 if __name__ == '__main__':
 	if len(sys.argv) > 1 and sys.argv[1] in ['-t', '--test']:
