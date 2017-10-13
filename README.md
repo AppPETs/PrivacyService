@@ -41,6 +41,8 @@ security add-trusted-cert -p ssl certs/services.app-pets.org.crt
 
 Get the `certs/services.app-pets.org.crt` file onto the device or simulator and open it. The *Settings* application will guide you through the steps to install the certificate (which is called "Profile" there).
 
+Since iOS 10.3 in addition you need to go to *Settings* → *General* → *About* → *Certificate Trust Settings* and enable full trust for the root certificate you just added.
+
 ### Diagnostics
 
 A quick test if a secure connection to the service can be established can be done with the following command:
