@@ -39,7 +39,7 @@ class Database:
 	def __init__(self, file_name):
 		self.db = sqlite3.connect(file_name)
 		self.test_vectors = dict()
-		
+
 		# Initialize database schema
 		cursor = self.db.cursor()
 		cursor.execute('''
@@ -142,7 +142,7 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 
 	def parse_storage_key(self):
 		m = STORAGE_V1_RX.match(self.path)
-		
+
 		if not m:
 			self.send_error(
 				HTTPStatus.NOT_FOUND,
