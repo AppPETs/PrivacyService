@@ -160,6 +160,9 @@ class PServiceRequestHandler(http.server.BaseHTTPRequestHandler):
 			for key in headers.keys():
 				self.send_header(key, headers[key])
 
+		if body:
+			self.send_header(HttpHeader.ContentLength, len(body))
+
 		self.end_headers()
 
 		if body:
