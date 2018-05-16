@@ -22,7 +22,7 @@ openssl genrsa -out services.app-pets.org.key 2048
 openssl req -new -x509 -sha256 -key services.app-pets.org.key -out services.app-pets.org.crt -days 365 -subj /CN=services.app-pets.org
 cd ..
 ln -s certs/services.app-pets.org.key key.pem
-ln -s certs/services.app-pets.org crt.pem
+ln -s certs/services.app-pets.org.crt crt.pem
 ```
 
 Changing the certificates require you to restart the P-Service.
