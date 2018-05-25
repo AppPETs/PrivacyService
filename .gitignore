@@ -5,3 +5,6 @@ crt.pem
 
 # Data
 data.db
+
+# macOS misc files
+**/.DS_Store

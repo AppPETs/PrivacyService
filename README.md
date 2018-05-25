@@ -2,98 +2,64 @@
 
 This project is used to demonstrate privacy-respecting services that can be under the control of an adversary.
 
-This project is for demonstration purposes only and not tuned for performance.
-
 ## Prerequesites
 
 - Python 3.6
 
-### Generating a Self-signed Certificate
+### Python Libraries
 
-⚠️ Only use self-signed certificates during development and testing, not for production.
+- Bottle
+- Gunicorn
+- SQLAlchemy
 
-Assuming the domain for your server, where the P-Service is hosted, is `services.app-pets.org`:
+The dependencies can be installed using
 
 ```sh
 cd PrivacyService
-mkdir certs
-cd certs
-openssl genrsa -out services.app-pets.org.key 2048
-openssl req -new -x509 -sha256 -key services.app-pets.org.key -out services.app-pets.org.crt -days 365 -subj /CN=services.app-pets.org
-cd ..
-ln -s certs/services.app-pets.org.key key.pem
-ln -s certs/services.app-pets.org.crt crt.pem
-```
-
-Changing the certificates require you to restart the P-Service.
-
-### Trusting Self-signed Certificates
-
-⚠️ Only use self-signed certificates during development and testing, not for production.
-
-Note that you need to trust the certificate as it is self-signed and not signed by a trusted Certificate Authority (CA).
-
-#### macOS
-
-You can either trust the certificate by opening it with the *Keychain Access* application (which is the default for that file type) or by running the following command:
-
-```sh
-security add-trusted-cert -p ssl certs/services.app-pets.org.crt
-```
-
-#### iOS
-
-Get the `certs/services.app-pets.org.crt` file onto the device or simulator and open it. The *Settings* application will guide you through the steps to install the certificate (which is called "Profile" there).
-
-Since iOS 10.3 in addition you need to go to *Settings* → *General* → *About* → *Certificate Trust Settings* and enable full trust for the root certificate you just added.
-
-### Diagnostics
-
-A quick test if a secure connection to the service can be established can be done with the following command:
-
-```sh
-openssl s_client -connect services.app-pets.org:<port>
-```
-
-On macOS you can check if the TLS setup is correct. This helps diagnosing if a connection can be established with the default App Transport Security (ATS) policy of iOS or macOS applications. If a self-signed certificate is used, this certificate has to be trusted as described in the previous section.
-
-```sh
-nscurl --ats-diagnostics https://services.app-pets.org:<port>
-```
-
-### Testing
-
-In order to execute unit test, run the following command:
-
-```sh
-./pservice --test
+# Setup virtualenv
+virtualenv .
+source bin/activate
+pip3 install -r requirements.txt
 ```
 
 ## Documentation
+
+### Setup and Installation
+
+Project dependencies can be installed using `pip3`, as shown above. It is highly recommended to use a virtual environment to avoid cluttering the global namespace. Afterwards, the server can be invoked using either
+
+```sh
+# Invoke the server directly for local development only
+python3 pservice.py
+# or use gunicorn
+gunicorn --workers=4 pservice:app
+```
+
+Note that the server port specified in the `conf.json` file is only used in the first case. When using `gunicorn`, gunicorn's default parameters are used instead.
+
+The development server used by bottle itself adds the `Content-Length` and `Content-Type` request headers to all incoming requests, clashing with superfluous header detection. Gunicorn does not do this; The easiest solution is to temporarily turn off superfluous header detection for local development.
+
+Per the [gunicorn documentation](http://docs.gunicorn.org/en/stable/deploy.html), it is highly recommended to run gunicorn behind a proxy server such as nginx, otherwise it is trivial to launch denial-of-service attacks against the service. This is also where it is appropriate to add TLS support. The underlying application does not need to handle encryption and decryption in this case. A full guide on how to setup the server using `nginx` remains to be done.
+
+### Configuration
+
+The server can be configured by editing a simple JSON file called `conf.json`, which is automatically generated on first run.
 
 ### HTTP Header Fingerprinting Protection
 
 If a request contains superfluous HTTP headers, that is headers that are not required to answer the request, the request will be denied by default by replying with HTTP `400` (Bad Request). This is done in order to prevent fingerprinting attacks. Clients that send superfluous headers cannot use the service and a service can be tested if it accepts superfluous HTTP headers.
 
-This behaviour can be disabled with the `--allow-superfluous-headers` command line option.
-
-### Test Vectors
-
-In order to test clients against a real service the service can offer test vectors. Test vectors are specified in `test_vectors.json`. They are not enabled by default and can be enabled by passing the `--enable-test-vectors` command line option. 
-
-An example request for getting a test vector for the key-value storage API can be issued with the following command:
-
-```sh
-curl 'https://services.app-pets.org/storage/v1/fcb6471961829d28270462a2d5cba7fd141d80c608d6df074f8e2e213c187471' --header 'User-Agent:' --header 'Accept:' --cacert 'crt.pem' --raw --silent | base64
-```
-
-This should print `IdW1+TjJj3KaW79XN1FaFRJoU2Y5T79IkI7zi/vGkh25lFRU2Of+/2mKR58=` to the terminal output.
+This behaviour can be disabled by setting the `SUPERFLUOUS_HEADERS_ALLOWED` preference in the `conf.json` file. Note that bottle's development server adds request headers to incoming requests (see above).
 
 ### Error Handling
 
 If an API endpoint is invalid, e.g., because a specified key for the key-value storage API has an invalid format, the service will reply with `404` (Not Found).
 
-If values in the request have an unexpected format, e.g., if a non-numerical value is used for the `Content-Length` header, the service will reply with `400` (Bad Request). This will also be replied if the request contains superfluous HTTP headers and `--allow-superfluous-headers` was not set.
+If values in the request have an unexpected format, e.g., if a non-numerical value is used for the `Content-Length` header, the service will reply with `400` (Bad Request). This will also be replied if the request contains superfluous HTTP headers and `SUPERFLUOUS_HEADERS_ALLOWED` was not set.
+
+### Request Logging
+
+It is possible to configure the application to log all incoming requests, including the type of access (Retrieve, Update, Delete), the key used, the full HTTP request and values before and after the requested action. Logging is enabled using the `REQUEST_LOGGING` key in `conf.json`. This functionality can be used to study what information attackers might obtain from a mis-configured system.
 
 ### Key-value Storage API
 
