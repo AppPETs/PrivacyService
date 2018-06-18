@@ -11,14 +11,13 @@ import argparse
 import json
 
 from database import Database
-from config import load_config
+import config
 
 from http import HTTPStatus
 from database import Database
 
-config = load_config()
 app = application = Bottle()
-app.db = Database(config)
+app.db = Database()
 
 
 class HttpHeader:
@@ -33,7 +32,7 @@ class MimeType:
 
 
 def key_filter(conf):
-    KEY_LENGTH_IN_BYTES = config['KEY_SIZE_IN_BITS'] / 8
+    KEY_LENGTH_IN_BYTES = config.KEY_SIZE_IN_BITS / 8
     regexp = r'([\da-fA-F]{%d})' % int(KEY_LENGTH_IN_BYTES * 2)
 
     def to_python(s):
@@ -63,7 +62,7 @@ def sanitize_request_headers(allowed_headers):
             return function(*args, **kwargs)
 
         # Only hook function if superfluous headers are not allowed
-        if config['SUPERFLUOUS_HEADERS_ALLOWED']:
+        if config.SUPERFLUOUS_HEADERS_ALLOWED:
             return function
         else:
             return wrapper
@@ -106,7 +105,7 @@ def log_request(action):
             return response
 
         # Enable request logging on demand
-        if config['REQUEST_LOGGING']:
+        if config.REQUEST_LOGGING:
             return wrapper
         else:
             return function
@@ -172,4 +171,6 @@ def invalid_endpoint(error):
     )
 
 if __name__ == '__main__':
-    run(app, host=config['SERVER_ADDRESS'], port=config['SERVER_PORT'])
+    run(app, 
+        host=config.SERVER_CONFIGURATION['ADDRESS'], 
+        port=config.SERVER_CONFIGURATION['PORT'])

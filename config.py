@@ -1,56 +1,32 @@
-"""PrivacyService configuration module
-Attemps to read a conf.json file that exists locally and uses this file
-to populate an options dictionary. If no such file exists, default conf-
-iguration values are used."""
+"""PrivacyService configuration module"""
 
-import json
-import os
-
-CONFIG_FILE_NAME = os.path.join(os.path.dirname(__file__), "conf.json")
-
-CONFIG_DEFAULT = {
-    "DATABASE_FILE": os.path.join(os.path.dirname(__file__), "data.db"),
-# General configuration
-    "KEY_SIZE_IN_BITS": 256,
-    "SUPERFLUOUS_HEADERS_ALLOWED": True,
-# Server configuration
-    "SERVER_ADDRESS": "127.0.0.1",
-    "SERVER_PORT": 8080,
-# Other settings
-    "REQUEST_LOGGING": True
+DATABASES = {
+    'TESTING': {
+        'ENGINE': 'sqlite',
+        'DATABASE_FILE': 'data.db' # Relative filepath!
+    },
+    'PRODUCTION' : {
+        # Only sqlite and postgresql supported thus far.
+        'ENGINE': 'postgresql',
+        'NAME': '#DATABASE_NAME#',
+        'USER': '#DATABASE_USER#',
+        'ADDRESS': '#DATABASE_ADDRESS#',
+        'PASSWORD': '#DATABASE_PASSWORD#'
+    }
 }
 
+# Change for production
+DATABASE = DATABASES['TESTING']
 
-def store_config(config, to_file=CONFIG_FILE_NAME):
-    """Store server configuration to disk"""
-    with open(to_file, "w") as outfile:
-        json.dump(config, outfile, indent=4)
+KEY_SIZE_IN_BITS = 256
 
+# Only used when manually invoking the program using
+# python3 pservice.py. Otherwise, gunicorn has to be
+# configured manually
+SERVER_CONFIGURATION = {
+    'ADDRESS': '127.0.0.1',
+    'PORT': 8080
+}
 
-def load_config(from_file=CONFIG_FILE_NAME):
-    """Loads server configuration"""
-    global _config
-
-    # Use existing configuration, if it was already loaded during this
-    # execution
-    if '_config' in globals():
-        return _config
-
-    # Use default configuration as baseline. The loaded file replaces
-    # the keys it re-defines. This means local configuration files can
-    # focus on re-defining only the keys they want to change.
-    config = CONFIG_DEFAULT.copy()
-
-    if os.path.exists(from_file):
-        try:
-            with open(from_file) as input:
-                config.update(json.load(input))
-        except:
-            pass
-    else:
-        store_config(config)
-
-    _config = config
-
-    return _config
-    
+SUPERFLUOUS_HEADERS_ALLOWED = True
+REQUEST_LOGGING = True

@@ -7,16 +7,25 @@ from sqlalchemy.orm import sessionmaker
 import datetime
 
 from contextlib import contextmanager
+import config
 
+def make_engine():
+    if config.DATABASE['ENGINE'] == 'sqlite':
+        return create_engine('sqlite:///' + config.DATABASE['DATABASE_FILE'])
+    elif config.DATABASE['ENGINE'] == 'postgresql':
+        return create_engine('{}://{}:{}@{}/{}'.format(
+            config.DATABASE['ENGINE'],
+            config.DATABASE['USER'],
+            config.DATABASE['PASSWORD'],
+            config.DATABASE['ADDRESS'],
+            config.DATABASE['NAME']))
 
-def _engine_from_configuration(configuration_obj):
-    assert 'DATABASE_FILE' in configuration_obj
-    return create_engine('sqlite:///' + configuration_obj['DATABASE_FILE'])
+    assert(false and 'Unsupported configuration specified.')
 
 
 class Database:
-    def __init__(self, configuration_obj):
-        self.engine = _engine_from_configuration(configuration_obj)
+    def __init__(self):
+        self.engine = make_engine()
         self.session_maker = sessionmaker(bind=self.engine)
 
         # Populate the database with the models
@@ -42,16 +51,22 @@ class Database:
                       .filter(Entry.key == key)\
                       .one_or_none()
 
+    def lookup_value(self, session, value):
+        """Lookup an existing entry in the data store."""
+        return session.query(Value)\
+                      .filter(Value.blob == value)\
+                      .one_or_none()
+
 
     def insert_or_replace(self, session, key, value):
         entry = self.lookup_entry(session, key)
         
         if entry:
             # Update existing entry
-            entry.value = Value(blob=value)
+            entry.value = self.lookup_value(session, value) or Value(blob=value)
         else:
             # Create new entry.
-            entry = Entry(key=key, value=Value(blob=value))
+            entry = Entry(key=key, value=self.lookup_value(session, value) or Value(blob=value))
             session.add(entry)
 
 

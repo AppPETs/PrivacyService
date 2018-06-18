@@ -4,7 +4,7 @@ which creates a database and initialises these definitions used here (via
 initiate_data_definitions)"""
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Table, UniqueConstraint, Integer, String, BLOB, ForeignKey, Enum, DateTime
+from sqlalchemy import Column, Table, UniqueConstraint, Integer, String, LargeBinary, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
@@ -14,7 +14,7 @@ class Value(Base):
     __tablename__ = 'values'
 
     id       = Column(Integer, primary_key=True, unique=True)
-    blob     = Column(BLOB, unique=True)
+    blob     = Column(LargeBinary, unique=True)
 
     @property
     def size_in_bytes(self):
