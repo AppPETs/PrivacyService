@@ -30,7 +30,7 @@ createdb pservice
 
 # Change password
 su user
-psql
+psql pservice
 # Follow prompts to change password
 psql$ \password
 ```
@@ -131,10 +131,7 @@ systemctl restart nginx
 
 ## Enabling SSL support
 
-NOT YET FINISHED, as SSL support cannot currently be requested (because Port 80 is closed.)
-
-Follow this tutorial
-https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-18-04
+To obtain a certificate:
 
 ```sh
 sudo add-apt-repository ppa:certbot/certbot
@@ -144,3 +141,5 @@ sudo apt install python-certbot-nginx
 # Request certificate
 sudo certbot --nginx -d services.app-pets.org
 ```
+
+To renew the certificate automatically, add a cronjob that calls `certbot renew` automatically.
