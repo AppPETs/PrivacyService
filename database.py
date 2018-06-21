@@ -5,6 +5,7 @@ from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import sessionmaker
 
 import datetime
+from hashlib import blake2b
 
 from contextlib import contextmanager
 import config
@@ -21,7 +22,6 @@ def make_engine():
             config.DATABASE['NAME']))
 
     assert(false and 'Unsupported configuration specified.')
-
 
 class Database:
     def __init__(self):
@@ -51,10 +51,19 @@ class Database:
                       .filter(Entry.key == key)\
                       .one_or_none()
 
+    def hash_value(self, value):
+        """Returns a hash of `value`"""
+        # Blake2 is used here, because it can be configured using different
+        # digest output sizes. It is also faster than SHA1
+        # https://research.kudelskisecurity.com/2017/03/06/why-replace-sha-1-with-blake2/
+        h = blake2b(digest_size=config.DIGEST_SIZE)
+        h.update(value)
+        return h.digest()
+
     def lookup_value(self, session, value):
         """Lookup an existing entry in the data store."""
         return session.query(Value)\
-                      .filter(Value.blob == value)\
+                      .filter(Value.hash == self.hash_value(value))\
                       .one_or_none()
 
 
@@ -63,10 +72,10 @@ class Database:
         
         if entry:
             # Update existing entry
-            entry.value = self.lookup_value(session, value) or Value(blob=value)
+            entry.value = self.lookup_value(session, value) or Value(hash=self.hash_value(value), blob=value)
         else:
             # Create new entry.
-            entry = Entry(key=key, value=self.lookup_value(session, value) or Value(blob=value))
+            entry = Entry(key=key, value=self.lookup_value(session, value) or Value(hash=self.hash_value(value), blob=value))
             session.add(entry)
 
 

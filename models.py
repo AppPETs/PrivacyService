@@ -7,6 +7,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Table, UniqueConstraint, Integer, String, LargeBinary, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 
+import config
+
 Base = declarative_base()
 
 
@@ -14,14 +16,15 @@ class Value(Base):
     __tablename__ = 'values'
 
     id       = Column(Integer, primary_key=True, unique=True)
-    blob     = Column(LargeBinary, unique=True)
+    hash     = Column(LargeBinary(length=config.DIGEST_SIZE), unique=True)
+    blob     = Column(LargeBinary)
 
     @property
     def size_in_bytes(self):
         return len(self.blob)
 
     def __repr__(self):
-        return '<Value: length=%d>' % (len(self.blob))
+        return '<Value: hash=%s length=%d>' % (self.hash.hex(), len(self.blob))
 
 
 class Entry(Base):

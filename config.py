@@ -30,3 +30,7 @@ SERVER_CONFIGURATION = {
 
 SUPERFLUOUS_HEADERS_ALLOWED = True
 REQUEST_LOGGING = True
+
+# Hash size in bytes used to identify duplicates. For practical reasons,
+# 80 bits should suffice!
+DIGEST_SIZE = 10
