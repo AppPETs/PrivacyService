@@ -33,7 +33,7 @@ class MimeType:
 
 def key_filter(conf):
     KEY_LENGTH_IN_BYTES = config.KEY_SIZE_IN_BITS / 8
-    regexp = r'([\da-fA-F]{%d})' % int(KEY_LENGTH_IN_BYTES * 2)
+    regexp = r'([\da-f]{%d})' % int(KEY_LENGTH_IN_BYTES * 2)
 
     def to_python(s):
         return s
