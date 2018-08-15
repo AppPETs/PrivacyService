@@ -40,28 +40,12 @@ psql$ \password
 ```sh
 # Login as user
 su user
-
-# Create key for user, needed for pull access to data
-ssh-keygen -b 4096
 ```
 
-Assuming the key is placed in `~/.ssh/id_rsa`
-
-Modify `~/.ssh/config` to include the following
-
-```
-Host gitlab.prae.me
-        HostName gitlab.prae.me
-        IdentityFile ~/.ssh/id_rsa
-        User git
-````
-
-then install this key in Gogs to gain read-only access to the repository.
 Afterwards, simply clone and setup the repo.
 
 ```sh
-git clone git@gitlab.prae.me:apppets/PrivacyService.git
-git checkout wsgi
+git clone https://github.com/AppPETs/PrivacyService.git
 
 # Setup virtualenv
 virtualenv env
