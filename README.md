@@ -2,7 +2,7 @@
 
 This project is used to demonstrate privacy-respecting services that can be under the control of an adversary.
 
-⚠ The service hosted at https://services.app-pets.org is for demonstration purposes only. There is no guarantee that data is persisted. Data can be deleted at any time.
+⚠️ The service hosted at https://services.app-pets.org is for demonstration purposes only. There is no guarantee that data is persisted. Data can be deleted at any time.
 
 ## Prerequesites
 
