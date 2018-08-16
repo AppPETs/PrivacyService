@@ -2,7 +2,7 @@
 
 This project is used to demonstrate privacy-respecting services that can be under the control of an adversary.
 
-⚠️ The service hosted at https://services.app-pets.org is for demonstration purposes only. There is no guarantee that data is persisted. Data can be deleted at any time.
+⚠️ If you use the demo service at [https://services.app-pets.org](https://services.app-pets.org/), **all requests are logged** in order to demonstrate the information collected by a potentially malicious service operator. Your IP address will be logged as well. **Do not use this in productive apps.** There is no guarantee of availability for data stored with the demo service.
 
 ## Prerequesites
 
