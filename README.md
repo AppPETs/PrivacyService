@@ -4,7 +4,7 @@ This project is used to demonstrate privacy-respecting services that can be unde
 
 ⚠️ If you use the demo service at [https://services.app-pets.org](https://services.app-pets.org/), **all requests are logged** in order to demonstrate the information collected by a potentially malicious service operator. Your IP address will be logged as well. **Do not use this in productive apps.** There is no guarantee of availability for data stored with the demo service.
 
-## Prerequesites
+## Prerequisites
 
 - Python 3.6
 
