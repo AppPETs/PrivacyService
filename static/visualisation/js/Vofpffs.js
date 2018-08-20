@@ -8,7 +8,7 @@
 
 // control the Visualisation
 var selectedVisualiation = "";
-var selectedProperty = "";
+var selectedProperty = "key";
 
 // html Elements
 var visualSelector;
@@ -21,6 +21,8 @@ var sizep;
 var ipp;
 var datep;
 var headerl;
+
+var raw_data = null;
 
 var parse = d3.utcParse("%Y-%m-%d %H:%M:%S.%f");
 var formatTime = d3.utcFormat("%B %d, %Y");
@@ -83,9 +85,28 @@ function setPropertySelector(display) {
 function renderChart() {
     setSelectorFields({});
 
+    // Do not redownload data every time
+    if (raw_data != null) {
+        if (selectedVisualiation == "") {
+            selectedVisualiation = "treeMap";
+            selectedProperty = "key";
+            setPropertySelector("block");
+        }
+
+        if (selectedVisualiation == "treeMap") {
+            renderTreemap(raw_data, selectedProperty);
+            setPropertySelector("block");
+        } else {
+            console.error('Currently unimplemented.');
+        }
+    }
+
+
     d3.json("/storage/v1/dump", function (error, data) {
         if (error)
             throw error;
+
+        raw_data = data
 
         if (selectedVisualiation == "") {
             selectedVisualiation = "treeMap";
@@ -413,6 +434,8 @@ function setSelectorFields(keys) {
 
         propertySelector.appendChild(optK);
     });
+
+    propertySelector.value = selectedProperty;
 
     // Add new visual options
     visualSelectionOptions = [
