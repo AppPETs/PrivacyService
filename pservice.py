@@ -2,7 +2,7 @@
 Defines the supported API (GET, POST, DELETE) and their behaviour. Interfaces
 with the database to persist data."""
 
-from bottle import error, get, post, hook, request, run, Bottle, HTTPError, HTTPResponse
+from bottle import error, get, post, hook, request, run, Bottle, HTTPError, HTTPResponse, static_file
 
 import unittest
 import sys
@@ -162,7 +162,26 @@ def delete_entry(key, db_session=None):
 
     return HTTPResponse(status = HTTPStatus.OK)
 
+@app.get('/storage/v1/dump')
+def json_dump():
+    """Returns a JSON representation of the database
+    for use by the visualisation code.
 
+    ATTENTION / TODO: This API can be called by _everyone_ and is not secured by
+    access control. An attacker can use this API to retrieve a list of keys
+    with which then to delete data en masse.
+    """
+    with app.db.session_scope() as session:
+        contents = app.db.dump(session)
+        return contents
+
+# Visualisation-related code
+@app.get('/visualisation/v1/<path:path>')
+def visualisation_resource(path):
+    return static_file(path, root = config.VISUALISATION_STATIC_FILES_ROOT)
+
+
+# Error-handling
 @app.error(HTTPStatus.NOT_FOUND)
 def invalid_endpoint(error):
     return HTTPResponse(
