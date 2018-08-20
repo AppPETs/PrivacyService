@@ -44,6 +44,93 @@ class Database:
         finally:
             session.close()
 
+    def active_keys(self, session):
+        """Return a list of keys current active in the PrivacyService"""
+        existing_keys = session.query(Entry.key).all()
+        for x in existing_keys:
+            yield x.key
+
+    def dump(self, session):
+        """Introspection API: return a dump of the database
+
+        This function returns a dictionary mapping database keys
+        to dictionaries of the following structure:
+        k: {
+            'current': {
+                'timestamp': ...,
+                'headers': [ { 'key': x, 'value': y } ],
+                'ip': 127.0.0.1,
+                'size': 41
+            }
+            'history': [{
+                'timestamp': ...,
+            }, ...]
+        }
+
+        The 'current' key maps to a dictionary containing information
+        about the value currently associated with the key, or None (null)
+        if the value was recently deleted.
+
+        The 'history' key maps to a list of dictionaries each containing
+        information of past states associated with the key in question.
+        """
+        # Obtain set of currently active keys. Used to differentiate between
+        # current and past items
+        existing_keys = set(self.active_keys(session))
+
+        # Obtain all relevant events, along with the associated value and HttpRequest.
+        # Ignores 'Retrieve' events, as they do not change the associated value.
+        events = session.query(Event, Value, HttpRequest)\
+                         .filter(Event.action != 'Retrieve')\
+                         .join(Value, Value.id == Event.value_after_id)\
+                         .join(HttpRequest)
+
+        raw_infos = dict()
+
+        # Collect information for every event associated with a particular key
+        for event, value, request in events:
+            info = {
+                'timestamp': str(request.timestamp),
+                'headers': [
+                    { 'key': header.key, 'value': header.value }
+                    for header
+                    in request.headers
+                ],
+                # TODO Header fingerprint
+                'ip': request.sender,
+                'size': value.size_in_bytes
+            }
+
+            entry = raw_infos.get(event.key, [])
+            entry.append(info)
+
+            raw_infos[event.key] = entry
+
+        results = dict()
+
+        # Build up final results dict. Sort events in descending order based on timestamp.
+        for k in raw_infos.keys():
+            entries = sorted(raw_infos[k],
+                key=lambda i: i['timestamp'],
+                reverse=True)
+
+            if k in existing_keys:
+                # The last event that touched the value associated with key `k` is located
+                # at the front of the sorted entries list!
+                result = {
+                    'current': { **entries[0] },
+                    'history': entries[1:]
+                }
+            else:
+                result = {
+                    'current': None,
+                    'history': entries
+                }
+
+            results[k] = result
+
+        return results
+
 
     def lookup_entry(self, session, key):
         """Lookup an existing entry in the data store."""
