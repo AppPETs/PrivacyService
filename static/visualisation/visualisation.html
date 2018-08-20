@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>PrivacyService - Visualisation</title>    
+    <link href="css/bootstrap-grid.css" rel="stylesheet" />
+    <link href="css/bootstrap-reboot.css" rel="stylesheet" />
+    <link href="css/bootstrap.css" rel="stylesheet" />
+    <link href="css/Vofpffs.css" rel="stylesheet" />    
+</head>
+<body>
+    <div class="">
+        <script src="https://d3js.org/d3.v4.js"></script>
+        <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcArrdK5QqP7bC_lv3eQ29SSGGmMsvezw"
+        type="text/javascript"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <link href="css/bootstrap.css" rel="stylesheet" />
+        <script src="js/Vofpffs.js"></script>
+        <link href="css/Vofpffs.css" rel="stylesheet" />
+
+        <div class="grid-container" onload="renderChart()">
+            <nav id="sidebar" class="sidebar">
+                <div id="FileEntryInspector" class="grid-item">
+<!--                     <p id="selectedDbSetParagraph">Selected Set: A</p>
+ -->
+                    <div>
+                        <select id="visualSelector" class="custom-select" onchange="onVisualChange(this.value)"></select>
+                        <select id="propertySelector" class="custom-select" onchange="onPropertyChange(this.value)" style="display: none"></select>
+                    </div>
+
+                    <p id="idParagraph">Id :</p>
+<!--                     <p id="filenameParagraph">Filename : </p> -->                    
+                    <p id="sizeParagraph">Size : </p>
+                    <p id="ipParagraph">IP : </p>
+                    <p id="dateParagraph">Date :</p>
+<!--                     <p id="countryParagraph">Country :</p>
+                    <p id="regionNameParagraph">Region Name : </p>
+                    <p id="cityParagraph">City : </p>
+                    <p id="latParagraph">Lat : </p>
+                    <p id="lonParagraph">Lon :</p>
+                    <p id="ispParagraph">ISP : </p>
+ -->
+                    <p id="HeaderParagraph">Headers : </p>
+                    <ul id="HeaderList"></ul>
+                </div>
+            </nav>
+
+            <div id="FileEntryChart" class="grid-item">
+
+            </div>
+        </div>
+    </div>
+
+    <script src="js/Vofpffs.js"></script>
+</body>
+</html>

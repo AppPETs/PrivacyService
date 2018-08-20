@@ -1,0 +1,74 @@
+﻿.grid-container {
+    display: grid;
+    grid-template-columns: 25vw auto;
+    grid-auto-rows: 1fr;
+    height: 100vh;
+    width: 99vw;
+}
+
+.grid-item {
+    /*background-color: rgba(255, 255, 255, 0.8);
+        font-size: 16px;
+        text-align: center;*/
+}
+
+.svg {
+    height: inherit;
+    width: inherit;
+}
+
+p {
+    padding: 3px;
+}
+
+.collapsible {
+    background-color: #777;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+}
+
+    .active, .collapsible:hover {
+        background-color: #555;
+    }
+
+.content {
+    padding: 0 18px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    background-color: #f1f1f1;
+}
+
+.label {
+    text-anchor: middle;
+    text-overflow: ellipsis;
+    font-size: 16px;
+}
+
+.wrapper {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    width: 100%;
+}
+
+.sidebar {
+    width: 25vw;
+    height: 100%;
+    text-overflow: ellipsis;
+    visibility: visible;
+    overflow: auto;
+    max-height: 100vh;
+}
+
+td {
+    overflow: scroll;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
