@@ -69,42 +69,64 @@ def sanitize_request_headers(allowed_headers):
     return sanitize_decorator
 
 
+def provide_db_session():
+    """This decorator transparently adds a db_session kwarg to the function."""
+    def provide_db_session_decorator(function):
+        def wrapper(*args, **kwargs):
+            if 'db_session' not in kwargs:
+                with app.db.session_scope() as session:
+                    kwargs['db_session'] = session
+
+                    return function(*args, **kwargs)
+            else:
+                return function(*args, **kwargs)
+
+        return wrapper
+    return provide_db_session_decorator
+
+
+def should_log_request(req):
+    tracking_value = req.headers.get('X-AppPETs-BadProvider', None)
+    return tracking_value is not None and tracking_value is not '0'
+
+
 def log_request(action):
     """Decorator for request functions that get a single `key` argument.
     This decorator transparently logs the requests, if logging is enabled."""
     def log_request_decorator(function):
         def wrapper(*args, **kwargs):
-            """The wrapper function a) creates a database session,
-            b) queries the existing value for a key, c) invokes the
-            request handler, d) queries the value for a key after
-            invoking the handler and e) logs the event before returning
+            """The wrapper function 
+            a) creates a database session,
+            b) queries the existing value for a key, 
+            c) invokes the
+            request handler, 
+            d) queries the value for a key after
+            invoking the handler and 
+            e) logs the event before returning
             the function's response"""
-            
-            # The only argument allowed is the key
-            assert len(args) == 0
-            assert len(kwargs) == 1
+            if not should_log_request(request):
+                return function(*args, **kwargs)
 
+            session = kwargs['db_session']
             key = kwargs['key']
-            with app.db.session_scope() as session:
-                # Submit the generated session to the request handler
-                if 'db_session' not in kwargs:
-                    kwargs['db_session'] = session
 
-                # Lookup value before invoking the function
-                value_before = app.db.lookup_entry(session, key)
-                value_before = value_before.value if value_before else None
+            # Lookup value before invoking the function
+            value_before = getattr(
+                app.db.lookup_entry(session, key), 
+                'value', None)
 
-                response = function(*args, **kwargs)
+            response = function(*args, **kwargs)
 
-                # Lookup value after invoking the function
-                value_after = app.db.lookup_entry(session, key)
-                value_after = value_after.value if value_after else None
+            # Lookup value after invoking the function
+            value_after = getattr(app.db.lookup_entry(session, key),
+                'value', None)
 
-                app.db.log_event(session, action, request, key, value_before, value_after)
+            app.db.log_event(session, action, request, key, value_before, value_after)
 
             return response
 
-        # Enable request logging on demand
+        # Enable request logging globally. Requests are only tracked if the caller
+        # explicitly allows this using the header 'X-AppPETs-BadProvider' and a non 0 value.
         if config.REQUEST_LOGGING:
             return wrapper
         else:
@@ -114,6 +136,7 @@ def log_request(action):
 
 @app.get('/storage/v1/<key:key>')
 @sanitize_request_headers({ HttpHeader.Host })
+@provide_db_session()
 @log_request('Retrieve')
 def retrieve_value(key, db_session=None):
     value = app.db.value_for(db_session, key)
@@ -139,6 +162,7 @@ def retrieve_value(key, db_session=None):
     HttpHeader.ContentType,
     HttpHeader.ContentLength
 })
+@provide_db_session()
 @log_request('Update')
 def update_value(key, db_session=None):
     try:
@@ -156,14 +180,17 @@ def update_value(key, db_session=None):
 
 @app.delete('/storage/v1/<key:key>')
 @sanitize_request_headers({ HttpHeader.Host })
+@provide_db_session()
 @log_request('Delete')
 def delete_entry(key, db_session=None):
     app.db.remove(db_session, key)
 
     return HTTPResponse(status = HTTPStatus.OK)
 
+
 @app.get('/storage/v1/dump')
-def json_dump():
+@provide_db_session()
+def json_dump(db_session=None):
     """Returns a JSON representation of the database
     for use by the visualisation code.
 
@@ -171,9 +198,8 @@ def json_dump():
     access control. An attacker can use this API to retrieve a list of keys
     with which then to delete data en masse.
     """
-    with app.db.session_scope() as session:
-        contents = app.db.dump(session)
-        return contents
+    return app.db.dump(db_session)
+
 
 # Visualisation-related code
 @app.get('/visualisation/v1/<path:path>')
