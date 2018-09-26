@@ -2,7 +2,7 @@
 Defines the supported API (GET, POST, DELETE) and their behaviour. Interfaces
 with the database to persist data."""
 
-from bottle import error, get, post, hook, request, run, Bottle, HTTPError, HTTPResponse, static_file
+from bottle import error, get, post, hook, request, run, Bottle, HTTPError, HTTPResponse, static_file, redirect
 
 import unittest
 import sys
@@ -205,6 +205,12 @@ def json_dump(db_session=None):
 @app.get('/visualisation/v1/<path:path>')
 def visualisation_resource(path):
     return static_file(path, root = config.VISUALISATION_STATIC_FILES_ROOT)
+
+
+@app.get('/')
+@app.get('/index.html')
+def present_readme():
+    redirect('https://github.com/AppPETs/PrivacyService/blob/master/README.md')
 
 
 # Error-handling
