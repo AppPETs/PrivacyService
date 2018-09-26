@@ -87,7 +87,7 @@ def provide_db_session():
 
 def should_log_request(req):
     tracking_value = req.headers.get('X-AppPETs-BadProvider', None)
-    return tracking_value is not None and tracking_value is not '0'
+    return tracking_value is not None and tracking_value is '1'
 
 
 def log_request(action):
