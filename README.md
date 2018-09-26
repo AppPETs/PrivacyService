@@ -2,7 +2,7 @@
 
 This project is used to demonstrate privacy-respecting services that can be under the control of an adversary.
 
-⚠️ If you use the demo service at [https://services.app-pets.org](https://services.app-pets.org/), **all requests are logged** in order to demonstrate the information collected by a potentially malicious service operator. Your IP address will be logged as well. **Do not use this in productive apps.** There is no guarantee of availability for data stored with the demo service.
+⚠️ **Do not use this software in productive apps.** There is no guarantee of availability for data stored with the demo service.
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ python3 pservice.py
 gunicorn --workers=4 pservice:app
 ```
 
-Note that the server port specified in the `conf.json` file is only used in the first case. When using `gunicorn`, gunicorn's default parameters are used instead.
+Note that the server port specified in the `config.py` file is only used in the first case. When using `gunicorn`, gunicorn's default parameters are used instead.
 
 The development server used by bottle itself adds the `Content-Length` and `Content-Type` request headers to all incoming requests, clashing with superfluous header detection. Gunicorn does not do this; The easiest solution is to temporarily turn off superfluous header detection for local development.
 
@@ -45,13 +45,13 @@ Per the [gunicorn documentation](http://docs.gunicorn.org/en/stable/deploy.html)
 
 ### Configuration
 
-The server can be configured by editing a simple JSON file called `conf.json`, which is automatically generated on first run.
+The server can be configured by editing the python `config.py` file.
 
 ### HTTP Header Fingerprinting Protection
 
 If a request contains superfluous HTTP headers, that is headers that are not required to answer the request, the request will be denied by default by replying with HTTP `400` (Bad Request). This is done in order to prevent fingerprinting attacks. Clients that send superfluous headers cannot use the service and a service can be tested if it accepts superfluous HTTP headers.
 
-This behaviour can be disabled by setting the `SUPERFLUOUS_HEADERS_ALLOWED` preference in the `conf.json` file. Note that bottle's development server adds request headers to incoming requests (see above).
+This behaviour is disabled by default and can be enabled by by setting the `SUPERFLUOUS_HEADERS_ALLOWED` preference in the `config.py` file to `False`. Note that bottle's development server adds request headers to incoming requests (see above).
 
 ### Error Handling
 
@@ -61,7 +61,11 @@ If values in the request have an unexpected format, e.g., if a non-numerical val
 
 ### Request Logging
 
-It is possible to configure the application to log all incoming requests, including the type of access (Retrieve, Update, Delete), the key used, the full HTTP request and values before and after the requested action. Logging is enabled using the `REQUEST_LOGGING` key in `conf.json`. This functionality can be used to study what information attackers might obtain from a mis-configured system.
+It is possible to configure the application to log all incoming requests, including the type of access (Retrieve, Update, Delete), the key used, the full HTTP request and values before and after the requested action. Logging functionality is enabled globally using the `REQUEST_LOGGING` key in `config.py`. This is done in order to demonstrate the information collected by a potentially malicious service operator. Your IP address will be logged as well.
+
+With `REQUEST_LOGGING` enabled, (only) requests containing the header `X-AppPETs-BadProvider` with a non-zero value are logged.
+
+The demo service at [https://services.app-pets.org](https://services.app-pets.org/) has logging enabled. Your requests are logged if you provide the `X-AppPETs-BadProvider` header with your requests.
 
 ### Key-value Storage API
 
