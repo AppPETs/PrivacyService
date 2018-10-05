@@ -5,10 +5,7 @@
  * Used with permission.
  * Slightly adapted to work with PrivacyService.
  */
-
-// control the Visualisation
-var selectedVisualiation = "";
-var selectedProperty = "key";
+import { URIHash } from './URIHash.js'
 
 // html Elements
 var visualSelector;
@@ -50,7 +47,10 @@ $(document).ready(function () {
     // ispp = document.getElementById("ispParagraph");
 
     visualSelector = document.getElementById("visualSelector");
+    visualSelector.addEventListener('change', onVisualChange);
+
     propertySelector = document.getElementById("propertySelector");
+    propertySelector.addEventListener('change', onPropertyChange);
 
     renderChart();
 });
@@ -62,16 +62,15 @@ $(window).resize(function () {
 });
 
 // new Visualisation has been selected
-function onVisualChange(select) {
-
-    selectedVisualiation = select;
+function onVisualChange() {
+    URIHash.set('vis', visualSelector.value);
     renderChart();
     resetInspector();
 };
 
 // new Property to display has been selected
-function onPropertyChange(select) {
-    selectedProperty = select;
+function onPropertyChange() {
+    URIHash.set('key', propertySelector.value);
     renderChart();
     resetInspector();
 };
@@ -83,18 +82,12 @@ function setPropertySelector(display) {
 
 // render the Visualisation
 function renderChart() {
-    setSelectorFields({});
+    setSelectorFields();
 
     // Do not redownload data every time
     if (raw_data != null) {
-        if (selectedVisualiation == "") {
-            selectedVisualiation = "treeMap";
-            selectedProperty = "key";
-            setPropertySelector("block");
-        }
-
-        if (selectedVisualiation == "treeMap") {
-            renderTreemap(raw_data, selectedProperty);
+        if (selectedVisualisationOption() == "treeMap") {
+            renderTreemap(raw_data);
             setPropertySelector("block");
         } else {
             console.error('Currently unimplemented.');
@@ -108,14 +101,10 @@ function renderChart() {
 
         raw_data = data
 
-        if (selectedVisualiation == "") {
-            selectedVisualiation = "treeMap";
-            selectedProperty = "key";
-            setPropertySelector("block");
-        }
+        const vis = selectedVisualisationOption();
 
-        if (selectedVisualiation == "treeMap") {
-            renderTreemap(data, selectedProperty);
+        if (vis == "treeMap") {
+            renderTreemap(data);
             setPropertySelector("block");
         } else {
             console.error('Currently unimplemented.');
@@ -260,10 +249,11 @@ function extractRelevantData(data) {
 }
 
 // render Treemap
-function renderTreemap(classes, property) {
+function renderTreemap(classes) {
     // Fixup data: Convert full database dump into
     // appropriate format.
     classes = extractRelevantData(classes);
+    let property = selectedPropertyOption();
 
     // ugly Code
     var canvasElement = getClearedCanvas();
@@ -413,32 +403,26 @@ function removeElementFromArray(array, elem) {
     }
 }
 
-// set the propertys to select from
-function setSelectorFields(keys) {
-    // Clear existing selectors
-    removeChildren(visualSelector);
-    removeChildren(propertySelector);
-
-    keys = [
+function propertyOptions() {
+    return [
         'key',
         'ip',
         'size',
         'timestamp',
         'headers'
     ];
+}
 
-    keys.forEach(function (element) {
-        var optK = document.createElement("option")
-        optK.value = element;
-        optK.innerHTML = element;
+function defaultPropertyOption() {
+    return propertyOptions()[0];
+}
 
-        propertySelector.appendChild(optK);
-    });
+function selectedPropertyOption() {
+    return URIHash.get('key') || defaultPropertyOption();
+}
 
-    propertySelector.value = selectedProperty;
-
-    // Add new visual options
-    visualSelectionOptions = [
+function visualisationOptions() {
+    return [
         {
             'value': 'treeMap',
             'description': 'Tree Map'
@@ -452,6 +436,35 @@ function setSelectorFields(keys) {
         //     'description': 'Time Line'
         // }
     ];
+}
+
+function defaultVisualisationOption() {
+    return visualisationOptions()[0].value;
+}
+
+function selectedVisualisationOption() {
+    return URIHash.get('vis') || defaultVisualisationOption();
+}
+
+// set the propertys to select from
+function setSelectorFields() {
+    // Clear existing selectors
+    removeChildren(visualSelector);
+    removeChildren(propertySelector);
+
+    let propertyOpts = propertyOptions();
+    propertyOpts.forEach(function (element) {
+        var optK = document.createElement("option")
+        optK.value = element;
+        optK.innerHTML = element;
+
+        propertySelector.appendChild(optK);
+    });
+
+    propertySelector.value = selectedPropertyOption();
+
+    // Add new visual options
+    let visualSelectionOptions = visualisationOptions()
 
     visualSelectionOptions.forEach(function (element) {
         var optV = document.createElement('option');
@@ -491,6 +504,8 @@ function setInspector(data) {
     // ispp.innerText = "ISP : " + data.isp;
 
     const headers = data.headers;
+    if (!headers || headers.length == 0)
+        return;
 
     headers.forEach(function (header) {
         const text = header.key + " = " + header.value;

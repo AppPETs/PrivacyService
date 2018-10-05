@@ -15,7 +15,7 @@
         type="text/javascript"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <link href="css/bootstrap.css" rel="stylesheet" />
-        <script src="js/Vofpffs.js"></script>
+        <script type="module" src="js/Vofpffs.js"></script>
         <link href="css/Vofpffs.css" rel="stylesheet" />
 
         <div class="grid-container" onload="renderChart()">
@@ -24,8 +24,8 @@
 <!--                     <p id="selectedDbSetParagraph">Selected Set: A</p>
  -->
                     <div>
-                        <select id="visualSelector" class="custom-select" onchange="onVisualChange(this.value)"></select>
-                        <select id="propertySelector" class="custom-select" onchange="onPropertyChange(this.value)" style="display: none"></select>
+                        <select id="visualSelector" class="custom-select"></select>
+                        <select id="propertySelector" class="custom-select" style="display: none"></select>
                     </div>
 
                     <p id="idParagraph">Key :</p>
@@ -51,6 +51,6 @@
         </div>
     </div>
 
-    <script src="js/Vofpffs.js"></script>
+    <script type="module" src="js/Vofpffs.js"></script>
 </body>
 </html>
